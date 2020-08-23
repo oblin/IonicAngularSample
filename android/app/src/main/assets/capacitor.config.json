@@ -1,0 +1,15 @@
+{
+  "appId": "com.jagi.sample",
+  "appName": "AngularSample",
+  "bundledWebRuntime": false,
+  "npmClient": "npm",
+  "webDir": "www",
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 0
+    }
+  },
+  "server": {
+    "url": "http://192.168.0.8:8100"
+  }
+}
