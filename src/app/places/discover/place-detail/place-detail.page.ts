@@ -4,7 +4,6 @@ import { NavController, ModalController, ActionSheetController } from '@ionic/an
 import { PlacesService } from '../../places.service';
 import { Place } from '../../place.model';
 import { CreateBookingComponent } from '../../../bookings/create-booking/create-booking.component';
-import { Button } from 'protractor';
 
 @Component({
   selector: 'app-place-detail',
@@ -56,7 +55,10 @@ export class PlaceDetailPage implements OnInit {
 
     const modal = await this.modalCtrl.create({
       component: CreateBookingComponent,
-      componentProps: { selectedPlace: this.place }
+      componentProps: { 
+        selectedPlace: this.place,
+        selectedMode: mode
+      }
     });
 
     await modal.present();
