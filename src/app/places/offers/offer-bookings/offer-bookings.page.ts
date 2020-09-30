@@ -1,7 +1,8 @@
-import { Component, OnInit } from '@angular/core';
-import { Place } from '../../place.model';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { NavController } from '@ionic/angular';
+import { Subscription } from 'rxjs';
+import { Place } from '../../place.model';
 import { PlacesService } from '../../places.service';
 
 @Component({
@@ -9,11 +10,12 @@ import { PlacesService } from '../../places.service';
   templateUrl: './offer-bookings.page.html',
   styleUrls: ['./offer-bookings.page.scss'],
 })
-export class OfferBookingsPage implements OnInit {
+export class OfferBookingsPage implements OnInit, OnDestroy {
 
   constructor(private route: ActivatedRoute, 
     private navCtrl: NavController, private placesService: PlacesService) { }
 
+  placeSub: Subscription;
   place: Place;
   ngOnInit() {
     // 這裡不需要使用 ionic 的 ionViewWillEnter()
@@ -25,8 +27,13 @@ export class OfferBookingsPage implements OnInit {
         return;
       }
 
-      this.place = this.placesService.getPlace(paramMap.get('placeId'));
+      this.placeSub = this.placesService.getPlace(paramMap.get('placeId')).subscribe(place => this.place = place);
     });
   }
 
+  ngOnDestroy() {
+    if (this.placeSub){
+      this.placeSub.unsubscribe();
+    }
+  }
 }

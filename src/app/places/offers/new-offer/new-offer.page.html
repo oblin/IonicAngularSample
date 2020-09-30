@@ -25,6 +25,9 @@
             <ion-label position="floating">Title</ion-label>
             <ion-input type="text" autocomplete autocorrect formControlName="title"></ion-input>
           </ion-item>
+          <ion-item *ngIf="!form.get('title').valid && form.get('title').touched" lines="none">
+            <ion-label>Title must be inputed</ion-label>
+          </ion-item>
         </ion-col>
       </ion-row>
       <ion-row>
@@ -39,13 +42,19 @@
         <ion-col size-sm="6" size-md="3">
           <p>Description must not be between 1 and 100 chars</p>
         </ion-col>
-      </ion-row>      <ion-row>
+      </ion-row>
+      <ion-row>
         <ion-item>
           <ion-col size-sm="6" size-md="3">
             <ion-label position="floating">Price</ion-label>
             <ion-input type="number" formControlName="price"></ion-input>
           </ion-col>
         </ion-item>
+      </ion-row>
+      <ion-row *ngIf="!form.get('price').valid && form.get('price').touched">
+        <ion-col size-sm="6" size-md="3">
+          <p>Price has error</p>
+        </ion-col>
       </ion-row>
       <ion-row>
         <ion-col size-sm="3" size-md="3">

@@ -1,6 +1,7 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { MenuController } from '@ionic/angular';
 import { SegmentChangeEventDetail } from '@ionic/core';
+import { Subscription } from 'rxjs';
 
 import { PlacesService } from '../places.service';
 import { Place } from '../place.model';
@@ -10,14 +11,18 @@ import { Place } from '../place.model';
   templateUrl: './discover.page.html',
   styleUrls: ['./discover.page.scss'],
 })
-export class DiscoverPage implements OnInit {
+export class DiscoverPage implements OnInit, OnDestroy {
 
   constructor(private placeService: PlacesService, private menuCtrl: MenuController) { }
   
   loadedPlaces: Place[];
-
+  listLoadedPlaces: Place[];
+  loadedSubject: Subscription;
   ngOnInit() {
-    this.loadedPlaces = this.placeService.places;
+    this.loadedSubject = this.placeService.places.subscribe(places => {
+      this.loadedPlaces = places
+      this.listLoadedPlaces = places.slice(1);
+    });
   }
 
   /* 
@@ -28,8 +33,13 @@ export class DiscoverPage implements OnInit {
     this.menuCtrl.toggle('m1');
   }
 
-
   onFilterUpdate(event: CustomEvent<SegmentChangeEventDetail>) {
     console.log(event.detail);
+  }
+
+  ngOnDestroy(): void {
+    if (this.loadedSubject) {
+      this.loadedSubject.unsubscribe();
+    }
   }
 }

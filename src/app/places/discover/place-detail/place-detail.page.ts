@@ -1,22 +1,24 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { NavController, ModalController, ActionSheetController } from '@ionic/angular';
 import { PlacesService } from '../../places.service';
 import { Place } from '../../place.model';
 import { CreateBookingComponent } from '../../../bookings/create-booking/create-booking.component';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-place-detail',
   templateUrl: './place-detail.page.html',
   styleUrls: ['./place-detail.page.scss'],
 })
-export class PlaceDetailPage implements OnInit {
+export class PlaceDetailPage implements OnInit, OnDestroy {
 
   constructor(private route: ActivatedRoute, private navCtrl: NavController,
     private placesService: PlacesService, private modalCtrl: ModalController,
     private actionSheetCtrl: ActionSheetController) { }
 
   place: Place;
+  placeSubscription: Subscription;
   ngOnInit() {
     this.route.paramMap.subscribe(paramMap => {
       if (!paramMap.has('placeId')) {
@@ -24,7 +26,7 @@ export class PlaceDetailPage implements OnInit {
         return;
       }
 
-      this.place = this.placesService.getPlace(paramMap.get('placeId'));
+      this.placeSubscription = this.placesService.getPlace(paramMap.get('placeId')).subscribe(place => this.place = place);
     });
   }
 
@@ -82,5 +84,11 @@ export class PlaceDetailPage implements OnInit {
     // 因 Ionic 使用 page cache 儲存瀏覽過的頁面，因此也可以使用 POP 方式將舊的頁面傳上
     // 但這個會有一個大問題就是如果 refresh 頁面後， cache 會被清除，因此就不會有預期的反應
     // this.navCtrl.pop();
+  }
+
+  ngOnDestroy() {
+    if (this.placeSubscription) {
+      this.placeSubscription.unsubscribe();
+    }
   }
 }
