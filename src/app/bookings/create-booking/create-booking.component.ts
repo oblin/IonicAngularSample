@@ -45,12 +45,12 @@ export class CreateBookingComponent implements OnInit {
 
     // 由 place-detail.component 呼叫的 modal form，因此在此確認並回傳數值
     this.modalCtrl.dismiss({
-      bookingDate: {
+      bookingData: {
         firstName: this.form.value['first-name'],
         lastName: this.form.value['last-name'],
-        guestNumber: this.form.value['guest-number'],
-        startDate: this.form.value['date-from'],
-        endDate: this.form.value['date-to']
+        guestNumber: +this.form.value['guest-number'],
+        startDate: new Date(this.form.value['date-from']),
+        endDate: new Date(this.form.value['date-to'])
       }},
       'confirm');
   }
