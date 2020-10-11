@@ -16,10 +16,21 @@ export class OffersPage implements OnInit, OnDestroy {
 
   offers: Place[];
   private placeSubject: Subscription;
+  
   ngOnInit() {
     // 使用自定義的 subject，永遠要記得 un-subscribe
+    // 每次資料有更新時候就會改變
     this.placeSubject = 
       this.placesService.places.subscribe(places => this.offers = places);
+  }
+
+  isLoading = false;
+  ionViewWillEnter() {
+    this.isLoading = true;
+    // 當進入 view 時，會再進行呼叫 fetchPlaces，
+    // 其中最後就會透過         tap(places => this._places.next(places))
+    // 觸發 subject 去讀取資料（也就是在 ngOnInit 中的 subscribe ）
+    this.placesService.fetchPlaces().subscribe(() => this.isLoading = false);
   }
 
   onEditOffer(offerId: string, itemSlide: IonItemSliding) {
@@ -28,7 +39,7 @@ export class OffersPage implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
-    if (this.placeSubject){
+    if (this.placeSubject){      
       this.placeSubject.unsubscribe();
     }
   }

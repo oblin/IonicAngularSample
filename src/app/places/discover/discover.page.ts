@@ -30,6 +30,12 @@ export class DiscoverPage implements OnInit, OnDestroy {
     });
   }
 
+  ionViewWillEnter() {
+    // 因為一開始沒有 fetchPlaces 就不會到後端 webapi 取出資料，因此每一個都需要再次讀取
+    // 這個可以跟 offer.page.ts 兩者進行優化
+    this.placeService.fetchPlaces().subscribe();
+  }
+
   /* 
    * 透過 MenuController 開啟 side drawer
    * m1: menuId，如果只有一個，也可不傳入參數

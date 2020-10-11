@@ -1,9 +1,9 @@
 import { Component, OnDestroy, OnInit } from "@angular/core";
-import { ActivatedRoute } from "@angular/router";
+import { ActivatedRoute, Router } from "@angular/router";
 import {
   NavController,
   ModalController,
-  ActionSheetController, LoadingController
+  ActionSheetController, LoadingController, AlertController
 } from "@ionic/angular";
 import { PlacesService } from "../../places.service";
 import { Place } from "../../place.model";
@@ -26,26 +26,46 @@ export class PlaceDetailPage implements OnInit, OnDestroy {
     private modalCtrl: ModalController,
     private actionSheetCtrl: ActionSheetController,
     private bookingService: BookingService,
-    private authService: AuthService
+    private authService: AuthService,
+    private alertCtrl: AlertController,
+    private router: Router
   ) {}
 
   place: Place;
+  isLoading = false;
   isBookable = false;
   placeSubscription: Subscription;
   ngOnInit() {
-    this.route.paramMap.subscribe((paramMap) => {
-      if (!paramMap.has("placeId")) {
-        this.navCtrl.navigateBack("/places/tabs/discover");
-        return;
-      }
-
-      this.placeSubscription = this.placesService
-        .getPlace(paramMap.get("placeId"))
-        .subscribe((place) => {
-          this.place = place;
-          this.isBookable = place.userId !== this.authService.userId;
-        });
-    });
+    this.route.paramMap.subscribe(
+      (paramMap) => {
+        if (!paramMap.has("placeId")) {
+          this.navCtrl.navigateBack("/places/tabs/discover");
+          return;
+        }
+        this.isLoading = true;
+        this.placeSubscription = this.placesService
+          .getPlace(paramMap.get("placeId"))
+          .subscribe(
+            (place) => {
+              this.place = place;
+              this.isBookable = place.userId !== this.authService.userId;
+              this.isLoading = false;
+            },
+            async (error) => {
+              console.log('into error handler');
+              const alert = await this.alertCtrl.create({
+                header: 'An error occurs!',
+                message: 'Place could not be fetched, please try again',
+                buttons: [{
+                  text: 'Ok',
+                  handler: () => {
+                    this.router.navigate(['/places/tabs/discover']);
+                  }
+                }]
+              });
+              await alert.present();
+            });
+      });
   }
 
   async onBookPlace() {
