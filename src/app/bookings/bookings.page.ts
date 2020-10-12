@@ -18,8 +18,18 @@ export class BookingsPage implements OnInit, OnDestroy {
   loadedBookings: Booking[];
   ngOnInit() {
     this.bookingSub = this.bookingService.bookings.subscribe(
-      (bookings) => (this.loadedBookings = bookings)
-    );
+      bookings => {
+        console.log('booking.page: ', bookings);
+        this.loadedBookings = bookings;
+      });
+  }
+
+  isLoading = false;
+  ionViewWillEnter() {
+    this.isLoading = true;
+    this.bookingService.fetchBookings().subscribe(() => {
+      this.isLoading = false;
+    });
   }
 
   async onDeleteBooking(bookingId: string, slidingEl: IonItemSliding) {

@@ -11,14 +11,21 @@
   <ion-grid>
     <ion-row>
       <ion-col size="12" size-sm="8" offset-sm="2" class="ion-text-center"
-        *ngIf="!loadedBookings || loadedBookings.length <= 0">
+        *ngIf="isLoading">
+        <ion-spinner color="primary"></ion-spinner>
+      </ion-col>
+      <ion-col size="12" size-sm="8" offset-sm="2" class="ion-text-center"
+        *ngIf="!isLoading && (!loadedBookings || loadedBookings.length <= 0)">
         <p>No Bookings Found!</p>
       </ion-col>
       <ion-col size="12" size-sm="8" offset-sm="2"
-        *ngIf="loadedBookings && loadedBookings.length > 0">
+        *ngIf="!isLoading && loadedBookings && loadedBookings.length > 0">
         <ion-list>
           <ion-item-sliding *ngFor="let booking of loadedBookings" #itemSlide>
             <ion-item>
+              <ion-avatar slot="start">
+                <ion-img [src]="booking.placeImage"></ion-img>
+              </ion-avatar>
               <ion-label>
                 <h5>{{booking.placeTitle}}</h5>
                 <p>Guest number: {{booking.guestNumber}}</p>
