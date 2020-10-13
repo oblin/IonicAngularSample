@@ -1,0 +1,26 @@
+.map {
+    position: absolute;
+    height: 100%;
+    width: 100%;
+
+    /* 設定目的在於可以確認後面沒有其他項目 */
+    background-color: transparent;
+
+    /* 
+       設定完全透明，因此沒有任何的顯示內容
+       這裡的目的在於可以有一個動態的顯示效果（從零到有）
+       */
+    opacity: 0; 
+
+    /* 
+        設定 150ms 透明度慢慢減少，換言之就是慢慢顯示 
+        這樣設定的理由在於 google map SDK 需要時間載入
+        因此透明度可以讓使用者在等待期間沒有感覺
+        */
+    transition: opacity 150ms ease-in;
+}
+
+/* 當完成 SDK 載入後，加入 visible class 讓他立即顯示 */
+.map.visible {
+    opacity: 1;
+}
