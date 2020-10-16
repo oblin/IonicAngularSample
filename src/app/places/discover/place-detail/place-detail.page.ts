@@ -11,6 +11,7 @@ import { CreateBookingComponent } from "../../../bookings/create-booking/create-
 import { Subscription } from "rxjs";
 import { BookingService } from "src/app/bookings/booking.service";
 import { AuthService } from 'src/app/auth/auth.service';
+import { MapModalComponent } from 'src/app/shared/map-modal/map-modal.component';
 
 @Component({
   selector: "app-place-detail",
@@ -133,6 +134,20 @@ export class PlaceDetailPage implements OnInit, OnDestroy {
     // 因 Ionic 使用 page cache 儲存瀏覽過的頁面，因此也可以使用 POP 方式將舊的頁面傳上
     // 但這個會有一個大問題就是如果 refresh 頁面後， cache 會被清除，因此就不會有預期的反應
     // this.navCtrl.pop();
+  }
+
+  async onShowFullMap() {
+    const modal = await this.modalCtrl.create({
+      component: MapModalComponent,
+      componentProps: {
+        center: {lat: this.place.location.lat, lng: this.place.location.lng},
+        selectable: false,
+        closeButtonText: '結束',
+        title: this.place.location.address
+      }
+    });
+    await modal.present();
+
   }
 
   ngOnDestroy() {

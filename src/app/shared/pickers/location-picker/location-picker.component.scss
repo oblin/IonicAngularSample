@@ -1,0 +1,27 @@
+.picker {
+    /*
+    rem 的文字基準取決於最外層的 html 文字大小，很適合用在整體的尺寸大小切換，以 RWD 響應式網頁來說，可以依據不同的尺寸，統一切換整體網頁的文字大小。
+    以 Bootstrap 4 來說，許多元件都是以 rem 作為單位，所以只要改寫 HTML 的 font-size，就能一口氣修改全部元件的尺寸
+     */
+    width: 30rem;
+    max-width: 80%; // for smaller screen
+    height: 20rem;
+    max-height: 30vh; // 30% HEIGHT OF VIEWPORT
+    border: 1px solid var(--ion-color-primary);
+    margin: auto;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.location-image {
+    width: 100%;
+    height: 100%;
+    /*
+    fill：預設值，會使圖片變形以合適設定的大小。（不推，會變形）
+    contain: 保持圖片比例呈現在設定的大小中。
+    cover: 保持圖片比並裁剪至適合的大小中。
+    none: 不調整圖片比例。
+     */
+    object-fit: cover;
+}

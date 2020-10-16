@@ -3,6 +3,7 @@ import { Injectable } from "@angular/core";
 import { BehaviorSubject, Observable, of } from "rxjs";
 import { delay, tap, map, take, switchMap } from "rxjs/operators";
 import { AuthService } from "../auth/auth.service";
+import { PlaceLocation } from './location.model';
 import { Place } from "./place.model";
 
 interface PlaceData {
@@ -12,7 +13,8 @@ interface PlaceData {
   price: number,
   from: string, 
   to: string, 
-  userId: string
+  userId: string,
+  location: PlaceLocation
 }
 
 @Injectable({
@@ -40,7 +42,8 @@ export class PlacesService {
             if (resData.hasOwnProperty(key)) {
               places.push(new Place(key, resData[key].title, resData[key].description, 
                 resData[key].imageUrl, resData[key].price, 
-                new Date(resData[key].from), new Date(resData[key].to), resData[key].userId));
+                new Date(resData[key].from), new Date(resData[key].to), resData[key].userId,
+                resData[key].location));
             }
           }
           return places;
@@ -58,7 +61,8 @@ export class PlacesService {
       .pipe(map(placeData => {
         return new Place(id, placeData.title, placeData.description, 
           placeData.imageUrl, placeData.price, 
-          new Date(placeData.from), new Date(placeData.to), placeData.userId);
+          new Date(placeData.from), new Date(placeData.to), placeData.userId,
+          placeData.location);
       }));
 
     // return this.places.pipe(
@@ -75,7 +79,8 @@ export class PlacesService {
     description: string,
     price: number,
     dateFrom: Date,
-    dateTo: Date
+    dateTo: Date,
+    location: PlaceLocation
   ) {
     let generatedId;
     const newPlace = new Place(
@@ -86,7 +91,8 @@ export class PlacesService {
       price,
       dateFrom,
       dateTo,
-      this.authService.userId
+      this.authService.userId,
+      location
     );
 
     // take: When you are interested in only the first emission, you want to use take
@@ -170,7 +176,8 @@ export class PlacesService {
           oldPlace.price,
           oldPlace.availableFrom,
           oldPlace.availableTo,
-          oldPlace.userId
+          oldPlace.userId,
+          oldPlace.location
         );
  
         // return http put result to client

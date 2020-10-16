@@ -1,4 +1,4 @@
-import { AfterViewInit, Component, ElementRef, OnInit, Renderer2, ViewChild } from '@angular/core';
+import { AfterViewInit, Component, ElementRef, Input, OnDestroy, OnInit, Renderer2, ViewChild } from '@angular/core';
 import { ModalController } from '@ionic/angular';
 
 @Component({
@@ -6,7 +6,7 @@ import { ModalController } from '@ionic/angular';
   templateUrl: './map-modal.component.html',
   styleUrls: ['./map-modal.component.scss'],
 })
-export class MapModalComponent implements OnInit, AfterViewInit {
+export class MapModalComponent implements OnInit, AfterViewInit, OnDestroy {
 
   constructor(private modalCtrl: ModalController, private renderer: Renderer2) { }
 
@@ -14,7 +14,15 @@ export class MapModalComponent implements OnInit, AfterViewInit {
 
   // 對應 HTML #map: <div class="map" #map></div>
   @ViewChild('map') mapElementRef: ElementRef;
+  // 外部提供中央的座標
+  @Input() center = { lat: 25.017168, lng: 121.469316 };
+  @Input() selectable = true;
+  @Input() closeButtonText = 'Cancel';
+  @Input() title = "Pick Location";
 
+  // 提供給 DESTROY 使用，避免 MEMORY LEAK
+  clickListener: any;
+  googleMaps: any;
   // 這裡使用 javascript 方式處理 google map DOM elements
   // 基本上是有 angular map componet: https://angular-maps.com/
   // 這裡示範使用 javscript 方式處理
@@ -26,18 +34,36 @@ export class MapModalComponent implements OnInit, AfterViewInit {
         
         // google map api, 第一個參數是 html element，第二個則是起始的地圖位置
         const map = new googleMaps.Map(mapEl, {
-          center: { lat: -34.397, lng: 150.644 },
+          center: this.center,
           zoom: 16
         });
 
+        this.googleMaps = googleMaps;
         // 當 google map object 已經載入後
         // 首先會觸發 idle event，我們監聽這個 event 只需要一次
         // 目的就是將 visible class 加入到 map element
         // 這樣 css 中的 .map.visible 設定才會觸發
         // 讓 google map 顯示
-        googleMaps.event.addListenerOnce(map, 'idle', () => {
+        this.googleMaps.event.addListenerOnce(map, 'idle', () => {
           this.renderer.addClass(mapEl, 'visible');
         });
+
+        if (this.selectable) {
+          // 允許使用者點選地點，因為設定 ADD LISTENER，必須要記得清除，否則會有 MEMORY LEAK
+          // API doc: https://developers.google.com/maps/documentation/javascript/events
+          this.clickListener = map.addListener('click', event => {
+            const selectedCoords = { lat: event.latLng.lat(), lng: event.latLng.lng() };
+            this.modalCtrl.dismiss(selectedCoords);
+          });
+        } else {
+          // Not selected, create map marker
+          const marker = new googleMaps.Marker({
+            position: this.center,
+            map: map,
+            title: this.title
+          });
+          marker.setMap(map);
+        }
       })
       .catch(err => {
         // 處理 reject case
@@ -91,6 +117,12 @@ export class MapModalComponent implements OnInit, AfterViewInit {
           }
         }
       });
+    }
+  }
+
+  ngOnDestroy(): void {
+    if (this.clickListener) {
+      this.googleMaps.event.removeListener(this.clickListener);
     }
   }
 }

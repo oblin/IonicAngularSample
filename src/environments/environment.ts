@@ -2,8 +2,12 @@
 // `ng build --prod` replaces `environment.ts` with `environment.prod.ts`.
 // The list of file replacements can be found in `angular.json`.
 
+/**
+ * 透過 ENVIRONMENT 可以 INJECT TO COMPONENTS
+ */
 export const environment = {
-  production: false
+  production: false,
+  googleMapsAPIKey: 'AIzaSyDHIfnsc28bPmtj451vkwHGF0xBvBZ8QpY'
 };
 
 /*
