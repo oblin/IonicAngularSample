@@ -1,12 +1,13 @@
 import { HttpClient } from "@angular/common/http";
 import { Component, EventEmitter, OnInit, Output } from "@angular/core";
-import { ModalController } from "@ionic/angular";
+import { ActionSheetController, AlertController, ModalController } from "@ionic/angular";
 import { map, switchMap } from 'rxjs/operators';
+import { Plugins, Capacitor, Geolocation } from '@capacitor/core';
 
 import { MapModalComponent } from "../../map-modal/map-modal.component";
 import { environment } from "../../../../environments/environment";
 import { of } from 'rxjs';
-import { PlaceLocation } from 'src/app/places/location.model';
+import { PlaceLocation, Coordinates } from 'src/app/places/location.model';
 
 /**
  * 使用在 new-offer.page.ts，透過 OUTPUT locationPicker emit 最終的結果
@@ -18,42 +19,91 @@ import { PlaceLocation } from 'src/app/places/location.model';
 })
 export class LocationPickerComponent implements OnInit {
   @Output() locationPicker = new EventEmitter<PlaceLocation>();
-  constructor(private modalCtrl: ModalController, private http: HttpClient) {}
+  constructor(private modalCtrl: ModalController, private http: HttpClient,
+    private actionSheetCtrl: ActionSheetController,
+    private alertCtrl: AlertController) {}
 
   ngOnInit() {}
 
   selectedLocationImage: string;
   isLoading = false;
   async onPickLocation() {
+    const actionSheet = await this.actionSheetCtrl.create({
+      header: 'Please Choose', buttons: [
+        { text: 'Auto-Locate', handler: () => {
+          this.locateUser(); 
+        }},
+        { text: 'Pick on Map', handler: async () => {
+          await this.openMap();
+        }},
+        { text: 'Cancel', role: 'cancel'},
+      ]
+    });
+    await actionSheet.present();
+  }
+
+  private async locateUser () {
+    // 拼字必須要正確
+    if (!Capacitor.isPluginAvailable('Geolocation')) {
+      await this.showErrorAlert();
+      return;
+    }
+    this.isLoading = true;
+    try {
+      const position = await Geolocation.getCurrentPosition();
+      var coordinates: Coordinates = {
+        lat: position.coords.latitude,
+        lng: position.coords.longitude
+      };
+      this.createPlace(coordinates.lat, coordinates.lng);
+      this.isLoading = false;
+    } catch (e) {
+      await this.showErrorAlert();
+    }
+  }
+
+  private async showErrorAlert() {
+    await this.alertCtrl.create({
+      header: 'Geo location can not be fetched',
+      message: 'Place use Pickup on Map',
+      buttons: ['OK']
+    });
+  }
+
+  private async openMap() {
     const modal = await this.modalCtrl.create({ component: MapModalComponent });
     await modal.present();
     const modalData = await modal.onDidDismiss();
     if (modalData.data) {
-      const pickedLocation: PlaceLocation = {
-        lat: modalData.data.lat,
-        lng: modalData.data.lng,
-        address: null,
-        staticMapImageUrl: null
-      };
-
       this.isLoading = true;
-      this.getAddress(modalData.data.lat, modalData.data.lng)
-        .pipe(
-          switchMap((address: string) => {
-            pickedLocation.address = address;
-            return of(this.getMapImageUrl(pickedLocation.lat, pickedLocation.lng, 13));
-          }))
-          .subscribe(staticMapImageUrl => {
-            pickedLocation.staticMapImageUrl = staticMapImageUrl;
-            this.selectedLocationImage = staticMapImageUrl;
-            this.isLoading = false;
-            this.locationPicker.emit(pickedLocation);
-          });
-        // 除了地址之外，也要取得地址對應的街景圖，因此改用 SWITCHMAP 取得不同的 OBSERVABLE
-        // .subscribe((address) => {
-        //   console.log(address);
-        // });
+      this.createPlace(modalData.data.lat, modalData.data.lng);
+      // 除了地址之外，也要取得地址對應的街景圖，因此改用 SWITCHMAP 取得不同的 OBSERVABLE
+      // .subscribe((address) => {
+      //   console.log(address);
+      // });
     }
+  }
+
+  private createPlace(lat: number, lng: number) {
+    const pickedLocation: PlaceLocation = {
+      lat: lat,
+      lng: lng,
+      address: null,
+      staticMapImageUrl: null
+    };
+
+    this.getAddress(lat, lng)
+      .pipe(
+        switchMap((address: string) => {
+          pickedLocation.address = address;
+          return of(this.getMapImageUrl(pickedLocation.lat, pickedLocation.lng, 13));
+        }))
+      .subscribe(staticMapImageUrl => {
+        pickedLocation.staticMapImageUrl = staticMapImageUrl;
+        this.selectedLocationImage = staticMapImageUrl;
+        this.isLoading = false;
+        this.locationPicker.emit(pickedLocation);
+      });
   }
 
   /**

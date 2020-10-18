@@ -1,4 +1,4 @@
-package io.ionic.starter;
+package com.jagi.sample;
 
 import android.os.Bundle;
 
