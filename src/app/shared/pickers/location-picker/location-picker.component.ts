@@ -1,5 +1,5 @@
 import { HttpClient } from "@angular/common/http";
-import { Component, EventEmitter, OnInit, Output } from "@angular/core";
+import { Component, EventEmitter, OnInit, Output, Input } from "@angular/core";
 import { ActionSheetController, AlertController, ModalController } from "@ionic/angular";
 import { map, switchMap } from 'rxjs/operators';
 import { Plugins, Capacitor, Geolocation } from '@capacitor/core';
@@ -18,13 +18,15 @@ import { PlaceLocation, Coordinates } from 'src/app/places/location.model';
   styleUrls: ["./location-picker.component.scss"],
 })
 export class LocationPickerComponent implements OnInit {
-  @Output() locationPicker = new EventEmitter<PlaceLocation>();
   constructor(private modalCtrl: ModalController, private http: HttpClient,
     private actionSheetCtrl: ActionSheetController,
     private alertCtrl: AlertController) {}
 
   ngOnInit() {}
 
+  @Output() locationPicker = new EventEmitter<PlaceLocation>();
+  // 用來處理 selectedImage 當存檔後，再次被新增未被清除的問題
+  @Input() showPreview = false;
   selectedLocationImage: string;
   isLoading = false;
   async onPickLocation() {

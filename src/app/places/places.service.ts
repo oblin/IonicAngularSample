@@ -1,5 +1,7 @@
 import { HttpClient } from "@angular/common/http";
 import { Injectable } from "@angular/core";
+import { strict } from 'assert';
+import { stringify } from 'querystring';
 import { BehaviorSubject, Observable, of } from "rxjs";
 import { delay, tap, map, take, switchMap } from "rxjs/operators";
 import { AuthService } from "../auth/auth.service";
@@ -74,13 +76,24 @@ export class PlacesService {
     // );
   }
 
+  uploadImage(image: File): Observable<{imageUrl: string, ImagePath: string}> {
+    // FormData: Key-value pair for Http request
+    const uploadData = new FormData();
+    uploadData.append('image', image);
+
+    // WebApi is not implemented yet!
+    return this.http.post<{imageUrl: string, ImagePath: string}>(
+      'https://localhost:5001/offeredPlaces/storeImage', uploadData);
+  }
+
   addPlace(
     title: string,
     description: string,
     price: number,
     dateFrom: Date,
     dateTo: Date,
-    location: PlaceLocation
+    location: PlaceLocation,
+    imageUrl: string    // replace fixed image, not implemented yet
   ) {
     let generatedId;
     const newPlace = new Place(
