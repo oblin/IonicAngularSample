@@ -12,6 +12,9 @@ Content-Type: application/json
 GET https://localhost:5001/OfferedPlaces
 
 ###
+GET http://localhost:5000/OfferedPlaces
+
+###
 # GET Testing
 GET https://localhost:5001/WeatherForecast
 
@@ -29,3 +32,13 @@ Content-Type: application/json
 # POST form data
 POST https://localhost:5001/OfferedPlaces/storeImage HTTP/1.1
 Content-Disposition: form-data; name="image"; filename="1.png"
+
+###
+# POST Testing
+POST https://localhost:5001/Account/login HTTP/1.1
+Content-Type: application/json
+
+{
+    "email": "Test Token",
+    "password": "admin's id"
+}

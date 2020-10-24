@@ -1,22 +1,22 @@
 import { HttpClient } from "@angular/common/http";
 import { Injectable } from "@angular/core";
-import { strict } from 'assert';
-import { stringify } from 'querystring';
+import { strict } from "assert";
+import { stringify } from "querystring";
 import { BehaviorSubject, Observable, of } from "rxjs";
 import { delay, tap, map, take, switchMap } from "rxjs/operators";
 import { AuthService } from "../auth/auth.service";
-import { PlaceLocation } from './location.model';
+import { PlaceLocation } from "./location.model";
 import { Place } from "./place.model";
 
 interface PlaceData {
-  title: string, 
-  description: string,
-  imageUrl: string,
-  price: number,
-  from: string, 
-  to: string, 
-  userId: string,
-  location: PlaceLocation
+  title: string;
+  description: string;
+  imageUrl: string;
+  price: number;
+  from: string;
+  to: string;
+  userId: string;
+  location: PlaceLocation;
 }
 
 @Injectable({
@@ -42,15 +42,24 @@ export class PlacesService {
           const places = [];
           for (const key in resData) {
             if (resData.hasOwnProperty(key)) {
-              places.push(new Place(key, resData[key].title, resData[key].description, 
-                resData[key].imageUrl, resData[key].price, 
-                new Date(resData[key].from), new Date(resData[key].to), resData[key].userId,
-                resData[key].location));
+              places.push(
+                new Place(
+                  key,
+                  resData[key].title,
+                  resData[key].description,
+                  resData[key].imageUrl,
+                  resData[key].price,
+                  new Date(resData[key].from),
+                  new Date(resData[key].to),
+                  resData[key].userId,
+                  resData[key].location
+                )
+              );
             }
           }
           return places;
         }),
-        tap(places => this._places.next(places))
+        tap((places) => this._places.next(places))
       );
   }
 
@@ -59,13 +68,23 @@ export class PlacesService {
    * @param id place id
    */
   getPlace(id: string): Observable<Place> {
-    return this.http.get<PlaceData>(`https://localhost:5001/offeredPlaces/${id}`) 
-      .pipe(map(placeData => {
-        return new Place(id, placeData.title, placeData.description, 
-          placeData.imageUrl, placeData.price, 
-          new Date(placeData.from), new Date(placeData.to), placeData.userId,
-          placeData.location);
-      }));
+    return this.http
+      .get<PlaceData>(`https://localhost:5001/offeredPlaces/${id}`)
+      .pipe(
+        map((placeData) => {
+          return new Place(
+            id,
+            placeData.title,
+            placeData.description,
+            placeData.imageUrl,
+            placeData.price,
+            new Date(placeData.from),
+            new Date(placeData.to),
+            placeData.userId,
+            placeData.location
+          );
+        })
+      );
 
     // return this.places.pipe(
     //   take(1), // 只取出最新 list，並且不再監聽
@@ -76,14 +95,18 @@ export class PlacesService {
     // );
   }
 
-  uploadImage(image: File): Observable<{imageUrl: string, ImagePath: string}> {
+  uploadImage(
+    image: File
+  ): Observable<{ imageUrl: string; ImagePath: string }> {
     // FormData: Key-value pair for Http request
     const uploadData = new FormData();
-    uploadData.append('image', image);
+    uploadData.append("image", image);
 
     // WebApi is not implemented yet!
-    return this.http.post<{imageUrl: string, ImagePath: string}>(
-      'https://localhost:5001/offeredPlaces/storeImage', uploadData);
+    return this.http.post<{ imageUrl: string; ImagePath: string }>(
+      "https://localhost:5001/offeredPlaces/storeImage",
+      uploadData
+    );
   }
 
   addPlace(
@@ -93,57 +116,66 @@ export class PlacesService {
     dateFrom: Date,
     dateTo: Date,
     location: PlaceLocation,
-    imageUrl: string    // replace fixed image, not implemented yet
-  ) {
-    let generatedId;
-    const newPlace = new Place(
-      Math.random().toString(),
-      title,
-      description,
-      "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e6/Paris_Night.jpg/1024px-Paris_Night.jpg",
-      price,
-      dateFrom,
-      dateTo,
-      this.authService.userId,
-      location
-    );
+    imageUrl: string // replace fixed image, not implemented yet
+  ): Observable<Place[]> {
+    let generatedId: string;
+    let newPlace: Place;
+    return this.authService.userId.pipe(
+      take(1),
+      switchMap((userId) => {
+        if (!userId) {
+          throw new Error("Found no user");
+        }
+        newPlace = new Place(
+          Math.random().toString(),
+          title,
+          description,
+          "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e6/Paris_Night.jpg/1024px-Paris_Night.jpg",
+          price,
+          dateFrom,
+          dateTo,
+          userId,
+          location
+        );
+        // take: When you are interested in only the first emission, you want to use take
+        //       代表只發送一次 this.places 的變化，因為 places 是 subject，正常而言每一次的 next 都會觸動 subscribe
+        //       因此透過 take 只允許一次，並且立即結束 subscribe
+        //       因此，在這個範例中， take 1 代表回傳原始的 places，而非 places.concat 的結果（因為這是第二次）
+        //       換言之，這樣的寫法就代表再 subscribe 中，不會知道最終結果，反而是需要監聽 this._places 的服務才會知道
+        //       另外一個優勢在於使用 take 1 只會確保一次的訂閱，因此也不需要進行 unsubscribe 動作
+        // this.places.pipe(take(1)).subscribe(places => {
+        //   // places: 因為是 behavior subject，因此這裡代表最新的值
+        //   // places.concat(newPlace): javascript list 串接，並回傳最終 list
+        //   // 使用 next 通知所有 subscribe，
+        //   this._places.next(places.concat(newPlace));
+        // });
 
-    // take: When you are interested in only the first emission, you want to use take
-    //       代表只發送一次 this.places 的變化，因為 places 是 subject，正常而言每一次的 next 都會觸動 subscribe
-    //       因此透過 take 只允許一次，並且立即結束 subscribe
-    //       因此，在這個範例中， take 1 代表回傳原始的 places，而非 places.concat 的結果（因為這是第二次）
-    //       換言之，這樣的寫法就代表再 subscribe 中，不會知道最終結果，反而是需要監聽 this._places 的服務才會知道
-    //       另外一個優勢在於使用 take 1 只會確保一次的訂閱，因此也不需要進行 unsubscribe 動作
-    // this.places.pipe(take(1)).subscribe(places => {
-    //   // places: 因為是 behavior subject，因此這裡代表最新的值
-    //   // places.concat(newPlace): javascript list 串接，並回傳最終 list
-    //   // 使用 next 通知所有 subscribe，
-    //   this._places.next(places.concat(newPlace));
-    // });
-
-    // 加入 http client, POST 回覆的 Object: {name: string}
-    return this.http
-      .post<{ name: string }>("https://localhost:5001/offeredPlaces", {
-        ...newPlace,
-        id: null,
+        // 加入 http client, POST 回覆的 Object: {name: string}
+        return this.http.post<{ name: string }>(
+          "https://localhost:5001/offeredPlaces",
+          {
+            ...newPlace,
+            id: null,
+          }
+        );
+      }),
+      // SwitchMap 的目的，在於將前面的回傳值，轉製成另外一個回傳值
+      // 這裡在 ＰＯＳＴ 的回傳是 object，但我們要回覆給 client 端的是 PLACES array
+      // 另外注意因為原先寫的是 RETURN HTTP，而這裡透過 SWITCHMAP 轉換成 THIS.PLACES
+      // 因此最終的回傳值是舊的 this.places
+      // 此外差異 switchMap: return observable & map: return non-observable
+      switchMap((resData) => {
+        generatedId = resData.name;
+        // 最終回傳值
+        return this.places;
+      }),
+      take(1),
+      tap((places) => {
+        newPlace.id = generatedId;
+        // 這裡不是透過回傳值告訴 client，而是當 client 有明確的指定監聽程式時候，才會更新
+        this._places.next(places.concat(newPlace));
       })
-      .pipe(
-        // SwitchMap 的目的，在於將前面的回傳值，轉製成另外一個回傳值
-        // 這裡在 ＰＯＳＴ 的回傳是 object，但我們要回覆給 client 端的是 PLACES array
-        // 另外注意因為原先寫的是 RETURN HTTP，而這裡透過 SWITCHMAP 轉換成 THIS.PLACES
-        // 因此最終的回傳值是舊的 this.places
-        // 此外差異 switchMap: return observable & map: return non-observable
-        switchMap((resData) => {
-          generatedId = resData.name;
-          return this.places;
-        }),
-        take(1),
-        tap((places) => {
-          newPlace.id = generatedId;
-          // 這裡不是透過回傳值告訴 client，而是當 client 有明確的指定監聽程式時候，才會更新
-          this._places.next(places.concat(newPlace));
-        })
-      );
+    );
 
     // 因為要提供 loading controller 判斷是否完成載入，
     // 因此改為回傳 observable
@@ -154,12 +186,16 @@ export class PlacesService {
     //   tap(places => this._places.next(places.concat(newPlace))));
   }
 
-  updatePlace(placeId: string, title: string, description: string): Observable<Place> {    
+  updatePlace(
+    placeId: string,
+    title: string,
+    description: string
+  ): Observable<Place> {
     let updatedPlaces: Place[];
 
     // 這裡的傳回值是在 swithMap 中定義
     // 這裏其實只是為了呼叫 http.put 但透過 pipe 可以定義更多的操作
-    // 例如 
+    // 例如
     //  tap 用來通知 this.places 已經有異動發生
     //  take 明定只需要處理一次
     //  switchMap 則用來轉換 Place[] -> Place object 並且用來回傳
@@ -169,7 +205,7 @@ export class PlacesService {
       // 更新 places list，但如果此時是 page reload 的狀態，此時可能尚未進行 fetchPlaces
       // 因此 places list is emtpy
       // 解決方式就是要先進行 fetchPlaces
-      switchMap(places => {
+      switchMap((places) => {
         if (!places || places.length <= 0) {
           // 必須要回傳 observable<Place[]>，否則下一個 switchMap 無法運作
           return this.fetchPlaces();
@@ -177,7 +213,7 @@ export class PlacesService {
           return of(places);
         }
       }),
-      switchMap(places => {
+      switchMap((places) => {
         const updatedPlaceIndex = places.findIndex((pl) => pl.id === placeId);
         updatedPlaces = [...places];
         const oldPlace = updatedPlaces[updatedPlaceIndex];
@@ -192,10 +228,12 @@ export class PlacesService {
           oldPlace.userId,
           oldPlace.location
         );
- 
+
         // return http put result to client
-        return this.http.put<Place>(`https://localhost:5001/offeredPlaces/${placeId}`, 
-          {...updatedPlaces[updatedPlaceIndex], id: null});
+        return this.http.put<Place>(
+          `https://localhost:5001/offeredPlaces/${placeId}`,
+          { ...updatedPlaces[updatedPlaceIndex], id: null }
+        );
       }),
       tap(() => {
         this._places.next(updatedPlaces);

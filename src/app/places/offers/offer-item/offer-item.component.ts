@@ -12,7 +12,6 @@ export class OfferItemComponent implements OnInit {
 
   @Input() offer: Place;
   ngOnInit() {
-    console.log('offer: ', this.offer);
   }
 
   getDummyDate() {

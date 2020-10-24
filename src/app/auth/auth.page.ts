@@ -1,43 +1,51 @@
-import { Component, OnInit } from '@angular/core';
-import { LoadingController } from '@ionic/angular';
-import { Router } from '@angular/router';
-import { NgForm } from '@angular/forms';
+import { Component, OnInit } from "@angular/core";
+import { AlertController, LoadingController } from "@ionic/angular";
+import { Router } from "@angular/router";
+import { NgForm } from "@angular/forms";
+import { Observable } from 'rxjs';
 
-import { AuthService } from './auth.service';
+import { AuthResponseData, AuthService } from "./auth.service";
 
 @Component({
-  selector: 'app-auth',
-  templateUrl: './auth.page.html',
-  styleUrls: ['./auth.page.scss'],
+  selector: "app-auth",
+  templateUrl: "./auth.page.html",
+  styleUrls: ["./auth.page.scss"],
 })
 export class AuthPage implements OnInit {
-
-  constructor(private authService: AuthService, private router: Router,
-    private loadingCtrl: LoadingController) { }
+  constructor(
+    private authService: AuthService,
+    private router: Router,
+    private loadingCtrl: LoadingController,
+    private alertCtrl: AlertController
+  ) {}
 
   isLoading = false;
   isLogin = true;
-  ngOnInit() {
-  }
+  ngOnInit() {}
 
-  async onLogin() {
+  async authenticate(email: string, password: string) {
     this.isLoading = true;
     const loading = await this.loadingCtrl.create({
-      message: 'loggin in...',
-      keyboardClose: true
+      message: "loggin in...",
+      keyboardClose: true,
     });
     await loading.present();
-    
-    // minic loading http request
-    setTimeout(() => this.DoLogin(), 1500);
-  }
 
-  DoLogin() {
-    console.log('Do login...');
-    this.authService.login();
-    this.isLoading = false;    
-    this.loadingCtrl.dismiss();
-    this.router.navigateByUrl('/places/tabs/discover');
+    let authObservable: Observable<AuthResponseData>;
+    if (this.isLogin) {
+      authObservable = this.authService.login(email, password);
+    } else {
+      authObservable = this.authService.signup(email, password);
+    }
+    authObservable.subscribe((resData) => {
+      this.isLoading = false;
+      this.loadingCtrl.dismiss();
+      this.router.navigateByUrl("/places/tabs/discover");
+    }, error => {
+      console.log('Signup Error: ', error);
+      this.showAlert(JSON.stringify(error));
+      this.loadingCtrl.dismiss();
+    });
   }
 
   onSwithcAuthMode() {
@@ -46,18 +54,22 @@ export class AuthPage implements OnInit {
 
   onSubmit(form: NgForm) {
     if (!form.valid) {
-      console.log('form is valid');
+      console.log("form is valid");
       return;
     }
 
     const email = form.value.email;
     const password = form.value.password;
-    console.log('login email & password', email, password);
+    this.authenticate(email, password);
+  }
 
-    if (this.isLogin) {
-      // Send a request to login server;
-    } else {
-      // Send a request to signup server;
-    }
+  private async showAlert(message: string) {
+    const alert = await this.alertCtrl.create({
+      header: 'Authentication Failed!',
+      message: message,
+      buttons: ['OK']
+    });
+
+    await alert.present();
   }
 }

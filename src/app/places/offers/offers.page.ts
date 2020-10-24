@@ -30,7 +30,10 @@ export class OffersPage implements OnInit, OnDestroy {
     // 當進入 view 時，會再進行呼叫 fetchPlaces，
     // 其中最後就會透過         tap(places => this._places.next(places))
     // 觸發 subject 去讀取資料（也就是在 ngOnInit 中的 subscribe ）
-    this.placesService.fetchPlaces().subscribe(() => this.isLoading = false);
+    this.placesService.fetchPlaces().subscribe(
+      () => this.isLoading = false,
+      error => console.log(error)
+    );
   }
 
   onEditOffer(offerId: string, itemSlide: IonItemSliding) {

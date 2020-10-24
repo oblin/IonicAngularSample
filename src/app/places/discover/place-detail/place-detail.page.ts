@@ -3,15 +3,18 @@ import { ActivatedRoute, Router } from "@angular/router";
 import {
   NavController,
   ModalController,
-  ActionSheetController, LoadingController, AlertController
+  ActionSheetController,
+  LoadingController,
+  AlertController,
 } from "@ionic/angular";
 import { PlacesService } from "../../places.service";
 import { Place } from "../../place.model";
 import { CreateBookingComponent } from "../../../bookings/create-booking/create-booking.component";
 import { Subscription } from "rxjs";
 import { BookingService } from "src/app/bookings/booking.service";
-import { AuthService } from 'src/app/auth/auth.service';
-import { MapModalComponent } from 'src/app/shared/map-modal/map-modal.component';
+import { AuthService } from "src/app/auth/auth.service";
+import { MapModalComponent } from "src/app/shared/map-modal/map-modal.component";
+import { switchMap, take } from "rxjs/operators";
 
 @Component({
   selector: "app-place-detail",
@@ -37,36 +40,49 @@ export class PlaceDetailPage implements OnInit, OnDestroy {
   isBookable = false;
   placeSubscription: Subscription;
   ngOnInit() {
-    this.route.paramMap.subscribe(
-      (paramMap) => {
-        if (!paramMap.has("placeId")) {
-          this.navCtrl.navigateBack("/places/tabs/discover");
-          return;
-        }
-        this.isLoading = true;
-        this.placeSubscription = this.placesService
-          .getPlace(paramMap.get("placeId"))
-          .subscribe(
-            (place) => {
-              this.place = place;
-              this.isBookable = place.userId !== this.authService.userId;
-              this.isLoading = false;
-            },
-            async (error) => {
-              console.log('into error handler');
-              const alert = await this.alertCtrl.create({
-                header: 'An error occurs!',
-                message: 'Place could not be fetched, please try again',
-                buttons: [{
-                  text: 'Ok',
+    this.route.paramMap.subscribe((paramMap) => {
+      if (!paramMap.has("placeId")) {
+        this.navCtrl.navigateBack("/places/tabs/discover");
+        return;
+      }
+      this.isLoading = true;
+      let fetchedUserId: string;
+      this.placeSubscription = this.authService.userId
+        .pipe(
+          take(1),
+          switchMap((userId) => {
+            if (!userId) {
+              throw new Error("Found no user");
+            }
+            fetchedUserId = userId;
+            return this.placesService.getPlace(paramMap.get("placeId"));
+          })
+        )
+        .subscribe(
+          // 這裡是 placeService.getPlace 的 subscription
+          (place) => {
+            this.place = place;
+            this.isBookable = place.userId !== fetchedUserId;
+            this.isLoading = false;
+          },
+          async (error) => {
+            console.log("into error handler");
+            const alert = await this.alertCtrl.create({
+              header: "An error occurs!",
+              message: "Place could not be fetched, please try again",
+              buttons: [
+                {
+                  text: "Ok",
                   handler: () => {
-                    this.router.navigate(['/places/tabs/discover']);
-                  }
-                }]
-              });
-              await alert.present();
+                    this.router.navigate(["/places/tabs/discover"]);
+                  },
+                },
+              ],
             });
-      });
+            await alert.present();
+          }
+        );
+    });
   }
 
   async onBookPlace() {
@@ -108,12 +124,23 @@ export class PlaceDetailPage implements OnInit, OnDestroy {
     const { data, role } = await modal.onDidDismiss();
     console.log(data);
     if (role === "confirm") {
-      const loading = await this.loadingCtrl.create({message: 'Booking place...'});
+      const loading = await this.loadingCtrl.create({
+        message: "Booking place...",
+      });
       await loading.present();
 
       const bookingData = data.bookingData;
-      this.bookingService.addBooking(this.place.id, this.place.title, this.place.imageUrl,
-        bookingData.firstName, bookingData.lastName, bookingData.guestNumber, bookingData.startDate, bookingData.endDate)
+      this.bookingService
+        .addBooking(
+          this.place.id,
+          this.place.title,
+          this.place.imageUrl,
+          bookingData.firstName,
+          bookingData.lastName,
+          bookingData.guestNumber,
+          bookingData.startDate,
+          bookingData.endDate
+        )
         .subscribe(() => {
           loading.dismiss();
         });
@@ -140,14 +167,13 @@ export class PlaceDetailPage implements OnInit, OnDestroy {
     const modal = await this.modalCtrl.create({
       component: MapModalComponent,
       componentProps: {
-        center: {lat: this.place.location.lat, lng: this.place.location.lng},
+        center: { lat: this.place.location.lat, lng: this.place.location.lng },
         selectable: false,
-        closeButtonText: '結束',
-        title: this.place.location.address
-      }
+        closeButtonText: "結束",
+        title: this.place.location.address,
+      },
     });
     await modal.present();
-
   }
 
   ngOnDestroy() {
