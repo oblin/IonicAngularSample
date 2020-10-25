@@ -110,6 +110,17 @@ export class AuthService implements OnDestroy {
     );
   }
 
+  get token() {
+    return this._user.asObservable().pipe(
+      map((user) => {
+        if (user) {
+          return user.token;
+        }
+        return null;
+      })
+    );
+  }
+
   login(email: string, password: string): Observable<AuthResponseData> {
     return this.http
       .post<AuthResponseData>("https://localhost:5001/Account/login", {

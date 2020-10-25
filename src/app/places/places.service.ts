@@ -32,35 +32,39 @@ export class PlacesService {
     return this._places.asObservable();
   }
 
-  fetchPlaces() {
-    // { [key: string] ...} 當 json 格式是： { 'key': 'value' } 時候，
-    // 我們不知道 key 的欄位名稱，可以使用 [key: string] 方式指定欄位名稱為： key
-    return this.http
-      .get<{ [key: string]: PlaceData }>("https://localhost:5001/offeredPlaces")
-      .pipe(
-        map((resData) => {
-          const places = [];
-          for (const key in resData) {
-            if (resData.hasOwnProperty(key)) {
-              places.push(
-                new Place(
-                  key,
-                  resData[key].title,
-                  resData[key].description,
-                  resData[key].imageUrl,
-                  resData[key].price,
-                  new Date(resData[key].from),
-                  new Date(resData[key].to),
-                  resData[key].userId,
-                  resData[key].location
-                )
-              );
-            }
+  fetchPlaces(): Observable<Place[]> {
+    return this.authService.token.pipe(
+      take(1),
+      switchMap((token) => {
+        // { [key: string] ...} 當 json 格式是： { 'key': 'value' } 時候，
+        // 我們不知道 key 的欄位名稱，可以使用 [key: string] 方式指定欄位名稱為： key
+        return this.http.get<{ [key: string]: PlaceData }>(
+          `https://localhost:5001/offeredPlaces?auth=${token}`
+        );
+      }),
+      map((resData) => {
+        const places = [];
+        for (const key in resData) {
+          if (resData.hasOwnProperty(key)) {
+            places.push(
+              new Place(
+                key,
+                resData[key].title,
+                resData[key].description,
+                resData[key].imageUrl,
+                resData[key].price,
+                new Date(resData[key].from),
+                new Date(resData[key].to),
+                resData[key].userId,
+                resData[key].location
+              )
+            );
           }
-          return places;
-        }),
-        tap((places) => this._places.next(places))
-      );
+        }
+        return places;
+      }),
+      tap((places) => this._places.next(places))
+    );
   }
 
   /**
@@ -68,23 +72,27 @@ export class PlacesService {
    * @param id place id
    */
   getPlace(id: string): Observable<Place> {
-    return this.http
-      .get<PlaceData>(`https://localhost:5001/offeredPlaces/${id}`)
-      .pipe(
-        map((placeData) => {
-          return new Place(
-            id,
-            placeData.title,
-            placeData.description,
-            placeData.imageUrl,
-            placeData.price,
-            new Date(placeData.from),
-            new Date(placeData.to),
-            placeData.userId,
-            placeData.location
-          );
-        })
-      );
+    return this.authService.token.pipe(
+      take(1),
+      switchMap((token) => {
+        return this.http.get<PlaceData>(
+          `https://localhost:5001/offeredPlaces/${id}?auth=${token}`
+        );
+      }),
+      map((placeData) => {
+        return new Place(
+          id,
+          placeData.title,
+          placeData.description,
+          placeData.imageUrl,
+          placeData.price,
+          new Date(placeData.from),
+          new Date(placeData.to),
+          placeData.userId,
+          placeData.location
+        );
+      })
+    );
 
     // return this.places.pipe(
     //   take(1), // 只取出最新 list，並且不再監聽
@@ -102,10 +110,17 @@ export class PlacesService {
     const uploadData = new FormData();
     uploadData.append("image", image);
 
-    // WebApi is not implemented yet!
-    return this.http.post<{ imageUrl: string; ImagePath: string }>(
-      "https://localhost:5001/offeredPlaces/storeImage",
-      uploadData
+    return this.authService.token.pipe(
+      take(1),
+      switchMap((token) => {
+        // TODO: WebApi is not implemented yet!
+        return this.http.post<{ imageUrl: string; ImagePath: string }>(
+          "https://localhost:5001/offeredPlaces/storeImage",
+          uploadData,
+          // Add Token to header
+          { headers: { Authorization: "Bearer " + token } }
+        );
+      })
     );
   }
 
@@ -120,10 +135,16 @@ export class PlacesService {
   ): Observable<Place[]> {
     let generatedId: string;
     let newPlace: Place;
+    let fetchedUserId: string;
     return this.authService.userId.pipe(
       take(1),
       switchMap((userId) => {
-        if (!userId) {
+        fetchedUserId = userId;
+        return this.authService.token;
+      }),
+      take(1),
+      switchMap((token) => {
+        if (!fetchedUserId) {
           throw new Error("Found no user");
         }
         newPlace = new Place(
@@ -134,7 +155,7 @@ export class PlacesService {
           price,
           dateFrom,
           dateTo,
-          userId,
+          fetchedUserId,
           location
         );
         // take: When you are interested in only the first emission, you want to use take
@@ -152,7 +173,7 @@ export class PlacesService {
 
         // 加入 http client, POST 回覆的 Object: {name: string}
         return this.http.post<{ name: string }>(
-          "https://localhost:5001/offeredPlaces",
+          `https://localhost:5001/offeredPlaces?auth=${token}`,
           {
             ...newPlace,
             id: null,
@@ -192,14 +213,19 @@ export class PlacesService {
     description: string
   ): Observable<Place> {
     let updatedPlaces: Place[];
-
-    // 這裡的傳回值是在 swithMap 中定義
-    // 這裏其實只是為了呼叫 http.put 但透過 pipe 可以定義更多的操作
-    // 例如
-    //  tap 用來通知 this.places 已經有異動發生
-    //  take 明定只需要處理一次
-    //  switchMap 則用來轉換 Place[] -> Place object 並且用來回傳
-    return this.places.pipe(
+    let fetchedToken: string;
+    return this.authService.token.pipe(
+      take(1),
+      switchMap((token) => {
+        fetchedToken = token;
+        return this.places;
+      }),
+      // 這裡的傳回值是在 swithMap 中定義
+      // 這裏其實只是為了呼叫 http.put 但透過 pipe 可以定義更多的操作
+      // 例如
+      //  tap 用來通知 this.places 已經有異動發生
+      //  take 明定只需要處理一次
+      //  switchMap 則用來轉換 Place[] -> Place object 並且用來回傳
       take(1),
       // 這裡有一個隱藏的bug，因為 edit-offer 來源是 offers，因此 updatePlace 會嘗試
       // 更新 places list，但如果此時是 page reload 的狀態，此時可能尚未進行 fetchPlaces
@@ -231,7 +257,7 @@ export class PlacesService {
 
         // return http put result to client
         return this.http.put<Place>(
-          `https://localhost:5001/offeredPlaces/${placeId}`,
+          `https://localhost:5001/offeredPlaces/${placeId}?auth=${fetchedToken}`,
           { ...updatedPlaces[updatedPlaceIndex], id: null }
         );
       }),
