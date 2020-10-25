@@ -11,9 +11,17 @@ export class User {
    * null 代表 user is not authenticated
    */
   get token() {
-      if (!this.tokenExpirationDate || this.tokenExpirationDate <= new Date()) {
-          return null;
-      }
-      return this._token;
+    if (!this.tokenExpirationDate || this.tokenExpirationDate <= new Date()) {
+      return null;
+    }
+    return this._token;
+  }
+
+  get tokenDuration(): number {
+    if (!this.token) {
+      return 0;
+    }
+    // return 2000;  // TODO: remove testing
+    return this.tokenExpirationDate.getTime() - new Date().getTime();
   }
 }

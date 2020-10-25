@@ -1,5 +1,5 @@
 import { HttpClient } from "@angular/common/http";
-import { Injectable } from "@angular/core";
+import { Injectable, OnDestroy } from "@angular/core";
 import { Plugins } from "@capacitor/core";
 import { BehaviorSubject, from, Observable, of } from "rxjs";
 import { map, switchMap, tap } from "rxjs/operators";
@@ -18,9 +18,10 @@ export interface AuthResponseData {
 @Injectable({
   providedIn: "root",
 })
-export class AuthService {
+export class AuthService implements OnDestroy {
   constructor(private http: HttpClient) {}
 
+  private activeLogoutTimer: any;
   /**
    * Auto login 的使用方式最好的地方就是在 auth.guard 中
    * 通過判斷 isAuthentication 時候，使用 autoLogin 簡化使用者登入的流程
@@ -57,6 +58,8 @@ export class AuthService {
       tap((user) => {
         if (user) {
           this._user.next(user);
+          // 登入時候就開始計算何時要將使用者 logout
+          this.autoLogout(user.tokenDuration);
         }
       }),
       // map，更关注于数值的转换，也就是说，他只会通过你之前的值去生成一个新的值
@@ -66,6 +69,16 @@ export class AuthService {
         return !!user;
       })
     );
+  }
+
+  private autoLogout(duration: number) {
+    if (this.activeLogoutTimer) {
+      // avoid memory leak
+      clearTimeout(this.activeLogoutTimer);
+    }
+    this.activeLogoutTimer = setTimeout(() => {
+      this.logout();
+    }, duration);
   }
 
   // 使用 BehaviorSubject 的原因在於 User 可能會因為登出、expired 等因素
@@ -117,6 +130,10 @@ export class AuthService {
   }
 
   logout() {
+    if (this.activeLogoutTimer) {
+      // avoid memory leak
+      clearTimeout(this.activeLogoutTimer);
+    }
     this._user.next(null);
     // 登出時候只需要移除這個值即可，因為 auth.guard 判斷storage沒有數值就會轉到登入頁面
     Plugins.Storage.remove({key: 'authData'});
@@ -142,14 +159,15 @@ export class AuthService {
     const expirationTime = new Date(
       new Date().getTime() + +userData.expiresIn * 1000 // second -> millisecond
     );
-    this._user.next(
-      new User(
-        userData.localId,
-        userData.email,
-        userData.idToken,
-        expirationTime
-      )
+    const user = new User(
+      userData.localId,
+      userData.email,
+      userData.idToken,
+      expirationTime
     );
+    this._user.next(user);
+    this.autoLogout(user.tokenDuration);
+
     // 將使用者登入資料儲存到本機
     this.storeAuthData(
       userData.localId,
@@ -178,5 +196,12 @@ export class AuthService {
       tokenExpirationDate: tokenExpirationDate,
     });
     Plugins.Storage.set({ key: "authData", value: data });
+  }
+
+  ngOnDestroy() {
+    if (this.activeLogoutTimer) {
+      // avoid memory leak
+      clearTimeout(this.activeLogoutTimer);
+    }
   }
 }
