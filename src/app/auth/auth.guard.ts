@@ -1,7 +1,7 @@
 import { Injectable } from "@angular/core";
 import { UrlTree, CanLoad, Route, Router } from "@angular/router";
-import { Observable } from "rxjs";
-import { take, tap } from "rxjs/operators";
+import { Observable, of } from "rxjs";
+import { switchMap, take, tap } from "rxjs/operators";
 import { AuthService } from "./auth.service";
 
 @Injectable({
@@ -24,6 +24,13 @@ export class AuthGuard implements CanLoad {
     // 為了避免 client 端（routing module）因為 subscription 引發多次的 trigger
     // 使用 take(1) 可以代表一次性的 trigger，後續異動就不會引發
     return this.authService.userIsAuthenticated.pipe(
+      switchMap(isAuthenticate => {
+        if (!isAuthenticate) {
+          return this.authService.autoLogin();
+        } else {
+          return of(isAuthenticate);
+        }
+      }),
       take(1),
       tap(isAuthenticate => {
         if (!isAuthenticate) {

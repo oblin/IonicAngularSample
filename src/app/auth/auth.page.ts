@@ -19,14 +19,12 @@ export class AuthPage implements OnInit {
     private alertCtrl: AlertController
   ) {}
 
-  isLoading = false;
   isLogin = true;
   ngOnInit() {}
 
   async authenticate(email: string, password: string) {
-    this.isLoading = true;
     const loading = await this.loadingCtrl.create({
-      message: "loggin in...",
+      message: "logging in...",
       keyboardClose: true,
     });
     await loading.present();
@@ -38,13 +36,12 @@ export class AuthPage implements OnInit {
       authObservable = this.authService.signup(email, password);
     }
     authObservable.subscribe((resData) => {
-      this.isLoading = false;
-      this.loadingCtrl.dismiss();
+      loading.dismiss();
       this.router.navigateByUrl("/places/tabs/discover");
     }, error => {
       console.log('Signup Error: ', error);
       this.showAlert(JSON.stringify(error));
-      this.loadingCtrl.dismiss();
+      loading.dismiss();
     });
   }
 

@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 
 import { Platform } from '@ionic/angular';
 import { SplashScreen } from '@ionic-native/splash-screen/ngx';
@@ -7,13 +7,14 @@ import { AuthService } from './auth/auth.service';
 import { Router } from '@angular/router';
 // Import plugins from capacitor
 import { Capacitor, Plugins, StatusBarStyle } from '@capacitor/core';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-root',
   templateUrl: 'app.component.html',
   styleUrls: ['app.component.scss']
 })
-export class AppComponent {
+export class AppComponent implements OnInit, OnDestroy {
   constructor(
     private platform: Platform,   // ionic platform specified components
     private splashScreen: SplashScreen,
@@ -22,6 +23,31 @@ export class AppComponent {
     private router: Router
   ) {
     this.initializeApp();
+  }
+
+  private authSub: Subscription;
+  private previousAuthState = false;
+  ngOnInit(): void {
+    // 監聽只要使用者有變化時候，就要進行處理
+    this.authSub = this.authService.userIsAuthenticated.subscribe(isAuth => {
+      console.log('previousAuthState: ', this.previousAuthState);
+      // 這裡會有一個問題，我們是透過 auth.guard 觸發 autoLogin
+      // 判斷是否需要重新導入
+      // 但 app.component 的 onInit 會是在 auth.guard 之前就觸發
+      // 在此當下沒有觸發 autoLogin，當然 isAuth always false
+      if (!isAuth && this.previousAuthState !== isAuth) {
+        this.router.navigateByUrl('/auth');
+      }
+      // 使用 previousAuthState 用來記錄前一次的判斷
+      // 這個做法有一點 tricky，主要概念如下：
+      // 當page reload 時候， previousAuthState = false (因為第一次載入)
+      // 但此時 isAuth = false （因為沒有進行 autoLogin)
+      // 此時反而不會觸發 navigate
+      // 因次就可以呼叫 auth.guard 用來執行 autologin
+      // 之後，如果使用者有記錄在 storage 時，此時 isAuth = true 
+      // 也不會執行 navigate
+      this.previousAuthState = isAuth;
+    });
   }
 
   initializeApp() {
@@ -42,6 +68,12 @@ export class AppComponent {
 
   onLogout() {
     this.authService.logout();
-    this.router.navigateByUrl('/auth');
+    // 移除此段，改由 onInit 的 subscription 處理
+    // this.router.navigateByUrl('/auth');
+  }
+
+  ngOnDestroy(): void {
+    if (this.authSub)
+      this.authSub.unsubscribe();
   }
 }

@@ -1,30 +1,31 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
-import { MenuController } from '@ionic/angular';
-import { SegmentChangeEventDetail } from '@ionic/core';
-import { Subscription } from 'rxjs';
-import { take } from 'rxjs/operators';
+import { Component, OnDestroy, OnInit } from "@angular/core";
+import { MenuController } from "@ionic/angular";
+import { SegmentChangeEventDetail } from "@ionic/core";
+import { Subscription } from "rxjs";
+import { take } from "rxjs/operators";
 
-import { PlacesService } from '../places.service';
-import { Place } from '../place.model';
-import { AuthService } from 'src/app/auth/auth.service';
+import { PlacesService } from "../places.service";
+import { Place } from "../place.model";
+import { AuthService } from "src/app/auth/auth.service";
 
 @Component({
-  selector: 'app-discover',
-  templateUrl: './discover.page.html',
-  styleUrls: ['./discover.page.scss'],
+  selector: "app-discover",
+  templateUrl: "./discover.page.html",
+  styleUrls: ["./discover.page.scss"],
 })
 export class DiscoverPage implements OnInit, OnDestroy {
-
-  constructor(private placeService: PlacesService, 
+  constructor(
+    private placeService: PlacesService,
     private authService: AuthService,
-    private menuCtrl: MenuController) { }
-  
+    private menuCtrl: MenuController
+  ) {}
+
   loadedPlaces: Place[];
   listLoadedPlaces: Place[];
   relevantPlaces: Place[];
   loadedSubject: Subscription;
   ngOnInit() {
-    this.loadedSubject = this.placeService.places.subscribe(places => {
+    this.loadedSubject = this.placeService.places.subscribe((places) => {
       this.loadedPlaces = places;
       this.relevantPlaces = this.loadedPlaces;
       this.listLoadedPlaces = this.relevantPlaces.slice(1);
@@ -37,21 +38,22 @@ export class DiscoverPage implements OnInit, OnDestroy {
     this.placeService.fetchPlaces().subscribe();
   }
 
-  /* 
+  /*
    * 透過 MenuController 開啟 side drawer
    * m1: menuId，如果只有一個，也可不傳入參數
    */
   onOpenMenu() {
-    this.menuCtrl.toggle('m1');
+    this.menuCtrl.toggle("m1");
   }
 
   onFilterUpdate(event: CustomEvent<SegmentChangeEventDetail>) {
-    this.authService.userId.pipe(take(1)).subscribe(userId => {
-      if (event.detail.value === 'all') {
+    this.authService.userId.pipe(take(1)).subscribe((userId) => {
+      if (event.detail.value === "all") {
         this.relevantPlaces = this.loadedPlaces;
       } else {
-        this.relevantPlaces = this.loadedPlaces.filter(place => 
-          place.userId == userId);
+        this.relevantPlaces = this.loadedPlaces.filter(
+          (place) => place.userId == userId
+        );
       }
       this.listLoadedPlaces = this.relevantPlaces.slice(1);
     });

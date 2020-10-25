@@ -78,6 +78,9 @@ export class BookingService {
           }
         );
       }),
+      // siwtchMap: 映射成 observable，完成前一个内部 observable，发出值
+      // 和其他打平操作符的主要区别是它具有取消效果。
+      // 在每次发出时，会取消前一个内部 observable (你所提供函数的结果) 的订阅，然后订阅一个新的 observable 
       switchMap((resData) => {
         // 前面的 post 取得回傳的 id (resData.name)
         generatedId = resData.name;
