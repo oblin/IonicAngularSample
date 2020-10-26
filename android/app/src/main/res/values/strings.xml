@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">AngularSample</string>
-    <string name="title_activity_main">AngularSample</string>
+    <string name="app_name">IONIC 範例</string>
+    <string name="title_activity_main">IONIC 範例</string>
     <string name="package_name">com.jagi.sample</string>
     <string name="custom_url_scheme">com.jagi.sample</string>
 </resources>

@@ -8,7 +8,6 @@ import { Router } from "@angular/router";
 // Import plugins from capacitor
 import { AppState, Capacitor, Plugins, StatusBarStyle } from "@capacitor/core";
 import { Subscription } from "rxjs";
-import { stat } from "fs";
 import { take } from "rxjs/operators";
 
 @Component({
